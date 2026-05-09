@@ -102,7 +102,7 @@ grant execute on function public.match_rag_documents(vector, uuid, text, integer
 --   보안: anon 키로 테이블을 직접 조회하면 해시가 노출될 수 있음.
 alter table public.app_users enable row level security;
 
-grant select, insert on public.app_users to anon, authenticated;
+grant select, insert, update on public.app_users to anon, authenticated;
 
 drop policy if exists "app_users_service_only" on public.app_users;
 create policy "app_users_service_only" on public.app_users
@@ -110,6 +110,7 @@ create policy "app_users_service_only" on public.app_users
 
 drop policy if exists "app_users_anon_insert" on public.app_users;
 drop policy if exists "app_users_anon_select" on public.app_users;
+drop policy if exists "app_users_anon_update" on public.app_users;
 
 create policy "app_users_anon_insert"
   on public.app_users
@@ -122,3 +123,10 @@ create policy "app_users_anon_select"
   for select
   to anon, authenticated
   using (true);
+
+create policy "app_users_anon_update"
+  on public.app_users
+  for update
+  to anon, authenticated
+  using (true)
+  with check (true);

@@ -212,14 +212,17 @@ def sign_in(client: Client, username: str, password: str) -> bool:
         res = client.table("app_users").select("password_hash,salt").eq("username", u).limit(1).execute()
         rows = res.data or []
         if not rows:
-            st.error("사용자 ID 또는 비밀번호가 올바르지 않습니다.")
+            st.error("등록되지 않은 사용자 ID 입니다. 사이드바의 **회원가입** 버튼으로 먼저 가입하세요.")
             return False
         row = rows[0]
         if verify_password(password, row["salt"], row["password_hash"]):
             st.session_state.user_id = u
             st.session_state.bootstrapped = False
             return True
-        st.error("사용자 ID 또는 비밀번호가 올바르지 않습니다.")
+        st.error(
+            "비밀번호가 일치하지 않습니다. "
+            "비밀번호를 잊으셨다면 **회원가입 페이지** 에서 같은 ID로 다시 등록해 비밀번호를 재설정할 수 있습니다."
+        )
         return False
     except Exception as e:
         if _is_missing_db_schema_error(e):
