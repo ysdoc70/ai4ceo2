@@ -179,9 +179,14 @@ def _supabase_db_key() -> Optional[str]:
 def _supabase_key_warning() -> Optional[str]:
     if os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip():
         return None
+    if any(
+        os.getenv(k, "").strip()
+        for k in ("SUPABASE_ANON_KEY", "SUPABASE_PUBLISHABLE_KEY")
+    ):
+        return None
     return (
-        "`app_users` 테이블을 쓰려면 **`SUPABASE_SERVICE_ROLE_KEY`** 를 Secrets 또는 .env 에 넣는 것을 권장합니다. "
-        "anon 키만 쓰면 RLS 때문에 가입·로그인이 막힐 수 있습니다."
+        "Supabase 키가 설정되지 않았습니다. `.env` 또는 Streamlit Secrets 에 "
+        "**`SUPABASE_URL`** 과 **`SUPABASE_ANON_KEY`** (또는 `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SERVICE_ROLE_KEY`) 를 추가하세요."
     )
 
 
@@ -509,18 +514,27 @@ def maybe_bootstrap(supabase: Client, uid: Optional[str]) -> None:
 
 supabase = make_supabase()
 if not supabase:
-    st.error("SUPABASE_URL 및 SUPABASE_SERVICE_ROLE_KEY(또는 anon 키) 설정이 필요합니다.")
+    st.error(
+        "Supabase 연결을 만들 수 없습니다. `.env` 또는 Streamlit Secrets 에 "
+        "**`SUPABASE_URL`** 과 **`SUPABASE_ANON_KEY`** (또는 `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SERVICE_ROLE_KEY`) 를 추가한 뒤 새로고침하세요."
+    )
     st.stop()
 
 maybe_bootstrap(supabase, st.session_state.user_id)
 
 if not st.session_state.user_id:
     st.info(
-        "로그인 전에: **`app_users` 없음(PGRST205)** 이면 `fix_app_users_only.sql` 만 SQL Editor에서 실행. "
-        "전체 초기화는 **`run_all_schema_ordered.sql`** 한 파일을 순서대로 모두 실행(맨 위는 rag_* 데이터 삭제). "
-        "또는 `multi-session-ref.sql` → `create_app_users_schema.sql` 각각 실행. "
-        "`.env`에 **`SUPABASE_URL`**·**`SUPABASE_SERVICE_ROLE_KEY`** 후 사이드바 **회원가입** → 로그인."
+        "사이드바의 **회원가입 (별도 페이지)** 에서 사용자 ID/비밀번호를 등록한 뒤, 메인 화면에서 **로그인** 하세요. "
+        "비밀번호를 잊으셨다면 같은 ID로 회원가입 페이지에서 **비밀번호 재설정** 을 사용할 수 있습니다."
     )
+    with st.expander("DB 스키마 초기화가 필요할 때 (PGRST205 / `user_id` 컬럼 오류 등)"):
+        st.markdown(
+            "Supabase 대시보드 **SQL Editor** 에서 아래 중 하나를 실행하세요. "
+            "프로젝트 루트의 SQL 파일을 그대로 붙여넣으면 됩니다.\n\n"
+            "1. `app_users` 테이블만 누락 → `fix_app_users_only.sql`\n"
+            "2. 처음부터 모두 새로 만들기 → `run_all_schema_ordered.sql` (기존 `rag_*` 데이터 삭제됨)\n"
+            "3. 단계별로 실행 → `prompt/10.multi-session/multi-session-ref.sql` 후 `create_app_users_schema.sql`"
+        )
 
 with st.sidebar:
     st.markdown('<h2 style="color: #1f77b4;">API 키</h2>', unsafe_allow_html=True)
